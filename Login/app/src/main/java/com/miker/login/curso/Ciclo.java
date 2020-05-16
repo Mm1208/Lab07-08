@@ -8,8 +8,8 @@ public class Ciclo extends Instancia {
     private int id;
     private int anno;
     private int nume;
-    private java.sql.Date fech_inic;
-    private java.sql.Date fech_fina;
+    private Date fech_inic;
+    private Date fech_fina;
 
     public Ciclo(int id, int anno, int nume, Date fech_inic, Date fech_fina) {
         this.id = id;

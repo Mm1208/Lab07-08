@@ -1,11 +1,14 @@
 package com.miker.login.curso;
 
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,8 +31,14 @@ import com.miker.login.Model;
 import com.miker.login.NavDrawerActivity;
 import com.miker.login.R;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.miker.login.Model.LIST_CURSO_URL;
 
 public class CursosActivity extends AppCompatActivity implements RecyclerItemTouchHelper.RecyclerItemTouchHelperListener, CursosAdapter.CursoAdapterListener {
 
@@ -40,6 +49,7 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
     private SearchView searchView;
     private FloatingActionButton btn_insert;
     private Model model;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,18 +64,7 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         recyclerView = findViewById(R.id.recycler_view);
         cursoList = new ArrayList<>();
         model= new Model();
-        cursoList= model.getCursos();
-        adapter = new CursosAdapter(cursoList, this);
         coordinatorLayout = findViewById(R.id.main_content);
-
-        // white background notification bar
-        whiteNotificationBar(recyclerView);
-
-        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
-        recyclerView.setLayoutManager(mLayoutManager);
-        recyclerView.setItemAnimator(new DefaultItemAnimator());
-        recyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-        recyclerView.setAdapter(adapter);
 
         // go to update or add career
         btn_insert = findViewById(R.id.btn_insert);
@@ -80,14 +79,15 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         ItemTouchHelper.SimpleCallback itemTouchHelperCallback = new RecyclerItemTouchHelper(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, this);
         new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(recyclerView);
 
-        //should use database info
-
+        // white background notification bar
+        whiteNotificationBar(recyclerView);
 
         // Receive the Carrera sent by AddUpdCarreraActivity
         checkIntentInformation();
 
-        //refresh view
-        adapter.notifyDataSetChanged();
+        //
+        ListCursos task = new ListCursos();
+        task.execute();
     }
 
     @Override
@@ -238,6 +238,57 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
                 Toast.makeText(getApplicationContext(), aux.getNombre() + " agregado correctamente", Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    public class ListCursos extends AsyncTask<String, String, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // display a progress dialog for good user experiance
+            progressDialog = new ProgressDialog(CursosActivity.this);
+            progressDialog.setMessage("¡Espera por favor!");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            String result = "";
+            try {
+                result = model.run(LIST_CURSO_URL);
+            }catch (Exception ex){
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            // dismiss the progress dialog after receiving data from API
+            progressDialog.dismiss();
+            //Json
+            try {
+                model.getCursosFromJSON(s);
+                showCursos();
+            } catch (Exception ex) {
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+
+    }
+
+    public void showCursos(){
+        adapter = new CursosAdapter(model.getCursos(), this);
+
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
+        recyclerView.setLayoutManager(mLayoutManager);
+        recyclerView.setItemAnimator(new DefaultItemAnimator());
+        recyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+        recyclerView.setAdapter(adapter);
+
+        //refresh view
+        adapter.notifyDataSetChanged();
     }
 
     private void insert_curso() {
