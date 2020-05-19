@@ -24,6 +24,7 @@ import java.sql.Date;
 public class Model {
     private String apiUrl = "http://10.0.2.2:56884/BackEnd/ServeletUser";
     public final static String LIST_CURSO_URL = "http://10.0.2.2:8080/SIMA-FRONDEND-WEB/curso?opcion=list";
+    public final static String LIST_CARRERA_URL = "http://10.0.2.2:8080/SIMA-FRONDEND-WEB/carrera?opcion=list";
     private ArrayList<User> users;
     private User loggedUser;
     private ArrayList<Curso> cursos;
@@ -207,6 +208,26 @@ public class Model {
                                         detaDetail3.getString("titulo")
                                 )
                         )
+                );
+            }
+        } catch (JSONException e) {
+            throw e;
+        }
+    }
+
+    public void getCarreraFromJSON(String json_format) throws Exception {
+        try {
+            JSONArray list = new JSONArray(json_format);
+            this.carreras = new ArrayList<>();
+            for (int i = 0; i < list.length(); i++) {
+                JSONObject dataDetail = list.getJSONObject(i);
+                this.carreras.add(
+                        new Carrera(
+                                dataDetail.getInt("id"),
+                                dataDetail.getString("codigo"),
+                                dataDetail.getString("nombre"),
+                                dataDetail.getString("titulo")
+                                )
                 );
             }
         } catch (JSONException e) {

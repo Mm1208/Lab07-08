@@ -1,9 +1,11 @@
 package com.miker.login.carrera;
 
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
@@ -29,10 +31,13 @@ import com.miker.login.NavDrawerActivity;
 import com.miker.login.R;
 import com.miker.login.curso.Curso;
 import com.miker.login.curso.CursoActivity;
+import com.miker.login.curso.CursosActivity;
 import com.miker.login.curso.CursosAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.miker.login.Model.LIST_CURSO_URL;
 
 public class CarrerasActivity extends AppCompatActivity implements RecyclerItemTouchHelper.RecyclerItemTouchHelperListener, CarrerasAdapter.CarreraAdapterListener {
     private RecyclerView recyclerView;
@@ -42,6 +47,7 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
     private SearchView searchView;
     private FloatingActionButton btn_insert;
     private Model model;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -237,6 +243,57 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
                 Toast.makeText(getApplicationContext(), aux.getNombre() + " agregado correctamente", Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    public class ListCursos extends AsyncTask<String, String, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // display a progress dialog for good user experiance
+            progressDialog = new ProgressDialog(CarrerasActivity.this);
+            progressDialog.setMessage("¡Espera por favor!");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            String result = "";
+            try {
+                result = model.run("LIST_CARRERA_URL");
+            }catch (Exception ex){
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            // dismiss the progress dialog after receiving data from API
+            progressDialog.dismiss();
+            //Json
+            try {
+                model.getCarreraFromJSON(s);
+                showCarreras();
+            } catch (Exception ex) {
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+
+    }
+
+    public void showCarreras(){
+        adapter = new CarrerasAdapter(model.getCarreras(), this);
+
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
+        recyclerView.setLayoutManager(mLayoutManager);
+        recyclerView.setItemAnimator(new DefaultItemAnimator());
+        recyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+        recyclerView.setAdapter(adapter);
+
+        //refresh view
+        adapter.notifyDataSetChanged();
     }
 
     private void insert_carrera() {
