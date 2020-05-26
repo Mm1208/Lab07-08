@@ -2,6 +2,7 @@ package com.miker.login;
 
 import android.util.Log;
 
+import com.google.gson.Gson;
 import com.miker.login.carrera.Carrera;
 import com.miker.login.curso.Ciclo;
 import com.miker.login.curso.Curso;
@@ -23,12 +24,13 @@ import java.sql.Date;
 
 public class Model {
     private String apiUrl = "http://10.0.2.2:56884/BackEnd/ServeletUser";
-    public final static String LIST_CURSO_URL = "http://10.0.2.2:8080/SIMA-FRONDEND-WEB/curso?opcion=list";
+    public final static String LIST_CURSO_URL = "http://10.0.2.2:8080/SIMA/curso?opcion=list";
     private ArrayList<User> users;
     private User loggedUser;
     private ArrayList<Curso> cursos;
     private ArrayList<Carrera> carreras;
     private int[] covers;
+    private final static Gson gson = new Gson();
 
     public Model(ArrayList<User> users, User loggedUser, ArrayList<Curso> cursos, ArrayList<Carrera> carreras, int[] covers) {
         this.users = users;
@@ -183,30 +185,8 @@ public class Model {
             this.cursos = new ArrayList<>();
             for (int i = 0; i < list.length(); i++) {
                 JSONObject dataDetail = list.getJSONObject(i);
-                JSONObject detaDetail2 = dataDetail.getJSONObject("ciclo");
-                JSONObject detaDetail3 = dataDetail.getJSONObject("carrera");
                 this.cursos.add(
-                        new Curso(
-                                dataDetail.getInt("id"),
-                                dataDetail.getString("codigo"),
-                                dataDetail.getString("nombre"),
-                                dataDetail.getInt("creditos"),
-                                dataDetail.getInt("hora_semana"),
-                                dataDetail.getInt("anno"),
-                                new Ciclo(
-                                        detaDetail2.getInt("id"),
-                                        detaDetail2.getInt("anno"),
-                                        detaDetail2.getInt("numero"),
-                                        Date.valueOf(detaDetail2.getString("fecha_inicial")),
-                                        Date.valueOf(detaDetail2.getString("fecha_final"))
-                                ),
-                                new Carrera(
-                                        detaDetail3.getInt("id"),
-                                        detaDetail3.getString("codigo"),
-                                        detaDetail3.getString("nombre"),
-                                        detaDetail3.getString("titulo")
-                                )
-                        )
+                        gson.fromJson(dataDetail.toString(), Curso.class)
                 );
             }
         } catch (JSONException e) {
