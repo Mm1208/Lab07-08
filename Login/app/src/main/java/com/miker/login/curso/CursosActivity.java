@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,15 +29,16 @@ import com.miker.login.Helper.RecyclerItemTouchHelper;
 import com.miker.login.Model;
 import com.miker.login.NavDrawerActivity;
 import com.miker.login.R;
+import com.miker.login.Servicio;
+import com.miker.login.ServicioCurso;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.miker.login.Model.LIST_CURSO_URL;
+import static com.miker.login.EncodingUtil.encodeURIComponent;
+import static com.miker.login.ServicioCurso.INSERT_CURSO_URL;
+import static com.miker.login.ServicioCurso.LIST_CURSO_URL;
+import static com.miker.login.ServicioCurso.UPDATE_CURSO_URL;
 
 public class CursosActivity extends AppCompatActivity implements RecyclerItemTouchHelper.RecyclerItemTouchHelperListener, CursosAdapter.CursoAdapterListener {
 
@@ -63,7 +63,7 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
 
         recyclerView = findViewById(R.id.recycler_view);
         cursoList = new ArrayList<>();
-        model= new Model();
+        model = new Model();
         coordinatorLayout = findViewById(R.id.main_content);
 
         // go to update or add career
@@ -86,7 +86,7 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         checkIntentInformation();
 
         //
-        ListCursos task = new ListCursos();
+        list task = new list();
         task.execute();
     }
 
@@ -204,43 +204,32 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
     }
 
     private void checkIntentInformation() {
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            Curso aux;
-            aux = (Curso) getIntent().getSerializableExtra("insert");
-            if (aux == null) {
-                aux = (Curso) getIntent().getSerializableExtra("update");
-                if (aux != null) {
-                    //found an item that can be updated
-                    boolean founded = false;
-                    for (Curso curso : cursoList) {
-                        if (curso.getId() == aux.getId()) {
-                            curso.setCodigo(aux.getCodigo());
-                            curso.setNombre(aux.getNombre());
-                            curso.setCreditos(aux.getCreditos());
-                            curso.setHora_semana(aux.getHora_semana());
-                            curso.setCiclo(aux.getCiclo());
-                            curso.setCarrera(aux.getCarrera());
-                            founded = true;
-                            break;
-                        }
-                    }
-                    //check if exist
-                    if (founded) {
+        try {
+            Bundle extras = getIntent().getExtras();
+            if (extras != null) {
+                Curso aux;
+                aux = (Curso) getIntent().getSerializableExtra("insert");
+                if (aux == null) {
+                    aux = (Curso) getIntent().getSerializableExtra("update");
+                    if (aux != null) {
+                        //found an item that can be updated
+                        Servicio.run(UPDATE_CURSO_URL + "&json=" + encodeURIComponent(ServicioCurso.insert(aux)));
+                        //check if exist
                         Toast.makeText(getApplicationContext(), aux.getNombre() + " actualizado correctamente", Toast.LENGTH_LONG).show();
-                    } else {
-                        Toast.makeText(getApplicationContext(), aux.getNombre() + " no encontrado", Toast.LENGTH_LONG).show();
+
                     }
+                } else {
+                    //found a new Curso Object
+                    Servicio.run(INSERT_CURSO_URL + "&json=" + encodeURIComponent(ServicioCurso.insert(aux)));
+                    Toast.makeText(getApplicationContext(), aux.getNombre() + " agregado correctamente", Toast.LENGTH_LONG).show();
                 }
-            } else {
-                //found a new Curso Object
-                cursoList.add(aux);
-                Toast.makeText(getApplicationContext(), aux.getNombre() + " agregado correctamente", Toast.LENGTH_LONG).show();
             }
+        } catch (Exception ex) {
+            Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-    public class ListCursos extends AsyncTask<String, String, String> {
+    public class list extends AsyncTask<String, String, String> {
 
         @Override
         protected void onPreExecute() {
@@ -256,8 +245,8 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         protected String doInBackground(String... params) {
             String result = "";
             try {
-                result = model.run(LIST_CURSO_URL);
-            }catch (Exception ex){
+                result = Servicio.run(LIST_CURSO_URL);
+            } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
             }
             return result;
@@ -269,8 +258,7 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
             progressDialog.dismiss();
             //Json
             try {
-                model.getCursosFromJSON(s);
-                showCursos();
+                showCursos(ServicioCurso.list(s));
             } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
             }
@@ -278,8 +266,8 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
 
     }
 
-    public void showCursos(){
-        adapter = new CursosAdapter(model.getCursos(), this);
+    public void showCursos(List<Curso> list) {
+        adapter = new CursosAdapter(list, this);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(mLayoutManager);
@@ -289,6 +277,43 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
 
         //refresh view
         adapter.notifyDataSetChanged();
+    }
+
+    public class insert extends AsyncTask<String, String, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // display a progress dialog for good user experiance
+            progressDialog = new ProgressDialog(CursosActivity.this);
+            progressDialog.setMessage("¡Espera por favor!");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            String result = "";
+            try {
+                result = Servicio.run(LIST_CURSO_URL);
+            } catch (Exception ex) {
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            // dismiss the progress dialog after receiving data from API
+            progressDialog.dismiss();
+            //Json
+            try {
+                showCursos(ServicioCurso.list(s));
+            } catch (Exception ex) {
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+
     }
 
     private void insert_curso() {

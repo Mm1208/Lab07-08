@@ -274,7 +274,7 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
             progressDialog.dismiss();
             //Json
             try {
-                model.getCarreraFromJSON(s);
+//                model.getCarreraFromJSON(s);
                 showCarreras();
             } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
