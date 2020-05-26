@@ -39,8 +39,8 @@ public class ServicioCurso {
         return servicioCurso;
     }
 
-    public static String insert(Curso object) {
-        return gson.toJson(object);
+    public static String insert(Curso object) throws Exception {
+        return object.getJSON().toString();
     }
 
     public static String update(Curso object) {

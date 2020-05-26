@@ -24,7 +24,7 @@ public class Servicio {
                     System.out.print(current);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                throw e;
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();

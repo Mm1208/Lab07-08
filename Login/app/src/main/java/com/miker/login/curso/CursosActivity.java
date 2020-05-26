@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.miker.login.EncodingUtil.encodeURIComponent;
+import static com.miker.login.ServicioCurso.DELETE_CURSO_URL;
 import static com.miker.login.ServicioCurso.INSERT_CURSO_URL;
 import static com.miker.login.ServicioCurso.LIST_CURSO_URL;
 import static com.miker.login.ServicioCurso.UPDATE_CURSO_URL;
@@ -45,11 +46,13 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
     private RecyclerView recyclerView;
     private CursosAdapter adapter;
     private List<Curso> cursoList;
+    private Curso deleteCurso;
     private CoordinatorLayout coordinatorLayout;
     private SearchView searchView;
     private FloatingActionButton btn_insert;
     private Model model;
     private ProgressDialog progressDialog;
+    private String message;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,11 +86,8 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         whiteNotificationBar(recyclerView);
 
         // Receive the Carrera sent by AddUpdCarreraActivity
-        checkIntentInformation();
-
-        //
-        list task = new list();
-        task.execute();
+        checkIntentInformation checkIntentInformation = new checkIntentInformation();
+        checkIntentInformation.execute();
     }
 
     @Override
@@ -95,24 +95,9 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         if (direction == ItemTouchHelper.START) {
             if (viewHolder instanceof CursosAdapter.MyViewHolder) {
                 // get the removed item name to display it in snack bar
-                String name = cursoList.get(viewHolder.getAdapterPosition()).getNombre();
-
-                // save the index deleted
-                final int deletedIndex = viewHolder.getAdapterPosition();
-                // remove the item from recyclerView
-                adapter.removeItem(viewHolder.getAdapterPosition());
-
-                // showing snack bar with Undo option
-                Snackbar snackbar = Snackbar.make(coordinatorLayout, name + " removido!", Snackbar.LENGTH_LONG);
-                snackbar.setAction("UNDO", new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        // undo is selected, restore the deleted item from adapter
-                        adapter.restoreItem(deletedIndex);
-                    }
-                });
-                snackbar.setActionTextColor(Color.YELLOW);
-                snackbar.show();
+                deleteCurso = cursoList.get(viewHolder.getAdapterPosition());
+                delete delete = new delete();
+                delete.execute();
             }
         } else {
             //If is editing a row object
@@ -203,51 +188,44 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         Toast.makeText(getApplicationContext(), "Selected: " + curso.getCodigo() + ", " + curso.getNombre(), Toast.LENGTH_LONG).show();
     }
 
-    private void checkIntentInformation() {
-        try {
-            Bundle extras = getIntent().getExtras();
-            if (extras != null) {
-                Curso aux;
-                aux = (Curso) getIntent().getSerializableExtra("insert");
-                if (aux == null) {
-                    aux = (Curso) getIntent().getSerializableExtra("update");
-                    if (aux != null) {
-                        //found an item that can be updated
-                        Servicio.run(UPDATE_CURSO_URL + "&json=" + encodeURIComponent(ServicioCurso.insert(aux)));
-                        //check if exist
-                        Toast.makeText(getApplicationContext(), aux.getNombre() + " actualizado correctamente", Toast.LENGTH_LONG).show();
-
-                    }
-                } else {
-                    //found a new Curso Object
-                    Servicio.run(INSERT_CURSO_URL + "&json=" + encodeURIComponent(ServicioCurso.insert(aux)));
-                    Toast.makeText(getApplicationContext(), aux.getNombre() + " agregado correctamente", Toast.LENGTH_LONG).show();
-                }
-            }
-        } catch (Exception ex) {
-            Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-
-    public class list extends AsyncTask<String, String, String> {
+    public class checkIntentInformation extends AsyncTask<String, String, String> {
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
             // display a progress dialog for good user experiance
             progressDialog = new ProgressDialog(CursosActivity.this);
-            progressDialog.setMessage("¡Espera por favor!");
+            progressDialog.setMessage("¡Buscando Registros!");
             progressDialog.setCancelable(false);
             progressDialog.show();
         }
 
         @Override
         protected String doInBackground(String... params) {
+            message = "";
             String result = "";
             try {
-                result = Servicio.run(LIST_CURSO_URL);
+                Bundle extras = getIntent().getExtras();
+                if (extras != null) {
+                    Curso aux;
+                    aux = (Curso) getIntent().getSerializableExtra("insert");
+                    if (aux == null) {
+                        aux = (Curso) getIntent().getSerializableExtra("update");
+                        if (aux != null) {
+                            //found an item that can be updated
+                            result = Servicio.run(UPDATE_CURSO_URL + "&json=" + encodeURIComponent(ServicioCurso.insert(aux)));
+                            //check if exist
+                            message = aux.getNombre() + " actualizado correctamente";
+
+                        }
+                    } else {
+                        //found a new Curso Object
+                        result = Servicio.run(INSERT_CURSO_URL + "&json=" + encodeURIComponent(ServicioCurso.insert(aux)));
+                        message = aux.getNombre() + " agregado correctamente";
+                    }
+                }
             } catch (Exception ex) {
-                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+                message = ex.getMessage();
             }
             return result;
         }
@@ -258,16 +236,60 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
             progressDialog.dismiss();
             //Json
             try {
-                showCursos(ServicioCurso.list(s));
+                list task = new list();
+                task.execute();
             } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            } finally {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
         }
 
     }
 
-    public void showCursos(List<Curso> list) {
-        adapter = new CursosAdapter(list, this);
+    public class list extends AsyncTask<String, String, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // display a progress dialog for good user experiance
+            progressDialog = new ProgressDialog(CursosActivity.this);
+            progressDialog.setMessage("¡Cargando la Lista!");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            message = "";
+            String result = "";
+            try {
+                result = Servicio.run(LIST_CURSO_URL);
+            } catch (Exception ex) {
+                message = ex.getMessage();
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            // dismiss the progress dialog after receiving data from API
+            progressDialog.dismiss();
+            //Json
+            try {
+                cursoList = ServicioCurso.list(s);
+                showCursos();
+            } catch (Exception ex) {
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            } finally {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+            }
+        }
+
+    }
+
+    public void showCursos() {
+        adapter = new CursosAdapter(cursoList, this);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(mLayoutManager);
@@ -279,27 +301,28 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         adapter.notifyDataSetChanged();
     }
 
-    public class insert extends AsyncTask<String, String, String> {
+    public class delete extends AsyncTask<String, String, String> {
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
             // display a progress dialog for good user experiance
             progressDialog = new ProgressDialog(CursosActivity.this);
-            progressDialog.setMessage("¡Espera por favor!");
+            progressDialog.setMessage("¡Eliminando " + deleteCurso.getNombre() + "!");
             progressDialog.setCancelable(false);
             progressDialog.show();
         }
 
         @Override
-        protected String doInBackground(String... params) {
-            String result = "";
+        protected String doInBackground(String... args) {
+            message = "";
             try {
-                result = Servicio.run(LIST_CURSO_URL);
+                Servicio.run(DELETE_CURSO_URL + "&json=" + encodeURIComponent(deleteCurso.getJSON().toString()));
+                message = deleteCurso.getNombre() + " eliminado correctamente";
             } catch (Exception ex) {
-                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+                message = ex.getMessage();
             }
-            return result;
+            return null;
         }
 
         @Override
@@ -308,9 +331,28 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
             progressDialog.dismiss();
             //Json
             try {
-                showCursos(ServicioCurso.list(s));
+                list task = new list();
+                task.execute();
             } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            } finally {
+                if (message.indexOf("eliminado correctamente") != -1) {
+                    // showing snack bar with Undo option
+                    Snackbar snackbar = Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG);
+                    snackbar.setAction("UNDO", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            // undo is selected, restore the deleted item from adapter
+                            getIntent().putExtra("insert", deleteCurso);
+                            checkIntentInformation checkIntentInformation = new checkIntentInformation();
+                            checkIntentInformation.execute();
+                        }
+                    });
+                    snackbar.setActionTextColor(Color.YELLOW);
+                    snackbar.show();
+                } else {
+                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+                }
             }
         }
 
