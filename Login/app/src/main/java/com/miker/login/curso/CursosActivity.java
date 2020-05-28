@@ -336,23 +336,7 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
             } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
             } finally {
-                if (message.indexOf("eliminado correctamente") != -1) {
-                    // showing snack bar with Undo option
-                    Snackbar snackbar = Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG);
-                    snackbar.setAction("UNDO", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            // undo is selected, restore the deleted item from adapter
-                            getIntent().putExtra("insert", deleteCurso);
-                            checkIntentInformation checkIntentInformation = new checkIntentInformation();
-                            checkIntentInformation.execute();
-                        }
-                    });
-                    snackbar.setActionTextColor(Color.YELLOW);
-                    snackbar.show();
-                } else {
-                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                }
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
         }
 

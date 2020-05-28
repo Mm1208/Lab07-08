@@ -67,7 +67,7 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
 
         recyclerView = findViewById(R.id.recycler_view);
         carreraList = new ArrayList<>();
-        model= new Model();
+        model = new Model();
         coordinatorLayout = findViewById(R.id.main_content);
 
 
@@ -84,8 +84,8 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
         ItemTouchHelper.SimpleCallback itemTouchHelperCallback = new RecyclerItemTouchHelper(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, this);
         new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(recyclerView);
 
-       // white background notification bar
-           whiteNotificationBar(recyclerView);
+        // white background notification bar
+        whiteNotificationBar(recyclerView);
 
         // Receive the Carrera sent by AddUpdCarreraActivity
         // Receive the Carrera sent by AddUpdCarreraActivity
@@ -93,6 +93,7 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
         checkIntentInformation.execute();
 
     }
+
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
         if (direction == ItemTouchHelper.START) {
@@ -113,6 +114,7 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
             startActivity(intent);
         }
     }
+
     public void onItemMove(int source, int target) {
         adapter.onItemMove(source, target);
     }
@@ -338,23 +340,7 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
             } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
             } finally {
-                if (message.indexOf("eliminado correctamente") != -1) {
-                    // showing snack bar with Undo option
-                    Snackbar snackbar = Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG);
-                    snackbar.setAction("UNDO", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            // undo is selected, restore the deleted item from adapter
-                            getIntent().putExtra("insert", deleteCarrera);
-                            checkIntentInformation checkIntentInformation = new checkIntentInformation();
-                            checkIntentInformation.execute();
-                        }
-                    });
-                    snackbar.setActionTextColor(Color.YELLOW);
-                    snackbar.show();
-                } else {
-                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                }
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
         }
 
