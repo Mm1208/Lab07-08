@@ -29,15 +29,18 @@ import com.miker.login.Helper.RecyclerItemTouchHelper;
 import com.miker.login.Model;
 import com.miker.login.NavDrawerActivity;
 import com.miker.login.R;
-import com.miker.login.curso.Curso;
-import com.miker.login.curso.CursoActivity;
-import com.miker.login.curso.CursosActivity;
-import com.miker.login.curso.CursosAdapter;
+import com.miker.login.Servicio;
+import com.miker.login.ServicioCarrera;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.miker.login.EncodingUtil.encodeURIComponent;
 import static com.miker.login.Model.LIST_CURSO_URL;
+import static com.miker.login.ServicioCarrera.DELETE_CARRERA_URL;
+import static com.miker.login.ServicioCarrera.INSERT_CARRERA_URL;
+import static com.miker.login.ServicioCarrera.LIST_CARRERA_URL;
+import static com.miker.login.ServicioCarrera.UPDATE_CARRERA_URL;
 
 public class CarrerasActivity extends AppCompatActivity implements RecyclerItemTouchHelper.RecyclerItemTouchHelperListener, CarrerasAdapter.CarreraAdapterListener {
     private RecyclerView recyclerView;
@@ -48,6 +51,9 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
     private FloatingActionButton btn_insert;
     private Model model;
     private ProgressDialog progressDialog;
+    private String message;
+    private Carrera deleteCarrera;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,18 +68,8 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
         recyclerView = findViewById(R.id.recycler_view);
         carreraList = new ArrayList<>();
         model= new Model();
-        carreraList= model.getCarreras();
-        adapter = new CarrerasAdapter(carreraList, this);
         coordinatorLayout = findViewById(R.id.main_content);
 
-        // white background notification bar
-        whiteNotificationBar(recyclerView);
-
-        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
-        recyclerView.setLayoutManager(mLayoutManager);
-        recyclerView.setItemAnimator(new DefaultItemAnimator());
-        recyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-        recyclerView.setAdapter(adapter);
 
         // go to update or add career
         btn_insert = findViewById(R.id.btn_insert);
@@ -88,39 +84,24 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
         ItemTouchHelper.SimpleCallback itemTouchHelperCallback = new RecyclerItemTouchHelper(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, this);
         new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(recyclerView);
 
-        //should use database info
-
+       // white background notification bar
+           whiteNotificationBar(recyclerView);
 
         // Receive the Carrera sent by AddUpdCarreraActivity
-        checkIntentInformation();
+        // Receive the Carrera sent by AddUpdCarreraActivity
+        CarrerasActivity.checkIntentInformation checkIntentInformation = new checkIntentInformation();
+        checkIntentInformation.execute();
 
-        //refresh view
-        adapter.notifyDataSetChanged();
     }
-
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
         if (direction == ItemTouchHelper.START) {
             if (viewHolder instanceof CarrerasAdapter.MyViewHolder) {
                 // get the removed item name to display it in snack bar
-                String name = carreraList.get(viewHolder.getAdapterPosition()).getNombre();
+                deleteCarrera = carreraList.get(viewHolder.getAdapterPosition());
+                delete delete = new delete();
+                delete.execute();
 
-                // save the index deleted
-                final int deletedIndex = viewHolder.getAdapterPosition();
-                // remove the item from recyclerView
-                adapter.removeItem(viewHolder.getAdapterPosition());
-
-                // showing snack bar with Undo option
-                Snackbar snackbar = Snackbar.make(coordinatorLayout, name + " removido!", Snackbar.LENGTH_LONG);
-                snackbar.setAction("UNDO", new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        // undo is selected, restore the deleted item from adapter
-                        adapter.restoreItem(deletedIndex);
-                    }
-                });
-                snackbar.setActionTextColor(Color.YELLOW);
-                snackbar.show();
             }
         } else {
             //If is editing a row object
@@ -132,8 +113,6 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
             startActivity(intent);
         }
     }
-
-    @Override
     public void onItemMove(int source, int target) {
         adapter.onItemMove(source, target);
     }
@@ -211,59 +190,44 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
         Toast.makeText(getApplicationContext(), "Selected: " + carrera.getCodigo() + ", " + carrera.getNombre(), Toast.LENGTH_LONG).show();
     }
 
-    private void checkIntentInformation() {
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            Carrera aux;
-            aux = (Carrera) getIntent().getSerializableExtra("insert");
-            if (aux == null) {
-                aux = (Carrera) getIntent().getSerializableExtra("update");
-                if (aux != null) {
-                    //found an item that can be updated
-                    boolean founded = false;
-                    for (Carrera curso : carreraList) {
-                        if (curso.getId() == aux.getId()) {
-                            curso.setCodigo(aux.getCodigo());
-                            curso.setNombre(aux.getNombre());
-                            curso.setTitulo(aux.getTitulo());
-                            founded = true;
-                            break;
-                        }
-                    }
-                    //check if exist
-                    if (founded) {
-                        Toast.makeText(getApplicationContext(), aux.getNombre() + " actualizado correctamente", Toast.LENGTH_LONG).show();
-                    } else {
-                        Toast.makeText(getApplicationContext(), aux.getNombre() + " no encontrado", Toast.LENGTH_LONG).show();
-                    }
-                }
-            } else {
-                //found a new Curso Object
-                carreraList.add(aux);
-                Toast.makeText(getApplicationContext(), aux.getNombre() + " agregado correctamente", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    public class ListCursos extends AsyncTask<String, String, String> {
+    public class checkIntentInformation extends AsyncTask<String, String, String> {
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
             // display a progress dialog for good user experiance
             progressDialog = new ProgressDialog(CarrerasActivity.this);
-            progressDialog.setMessage("¡Espera por favor!");
+            progressDialog.setMessage("¡Buscando Registros!");
             progressDialog.setCancelable(false);
             progressDialog.show();
         }
 
         @Override
         protected String doInBackground(String... params) {
+            message = "";
             String result = "";
             try {
-                result = model.run("LIST_CARRERA_URL");
-            }catch (Exception ex){
-                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+                Bundle extras = getIntent().getExtras();
+                if (extras != null) {
+                    Carrera aux;
+                    aux = (Carrera) getIntent().getSerializableExtra("insert");
+                    if (aux == null) {
+                        aux = (Carrera) getIntent().getSerializableExtra("update");
+                        if (aux != null) {
+                            //found an item that can be updated
+                            result = Servicio.run(UPDATE_CARRERA_URL + "&json=" + encodeURIComponent(ServicioCarrera.insert(aux)));
+                            //check if exist
+                            message = aux.getNombre() + " actualizado correctamente";
+
+                        }
+                    } else {
+                        //found a new Curso Object
+                        result = Servicio.run(INSERT_CARRERA_URL + "&json=" + encodeURIComponent(ServicioCarrera.insert(aux)));
+                        message = aux.getNombre() + " agregado correctamente";
+                    }
+                }
+            } catch (Exception ex) {
+                message = ex.getMessage();
             }
             return result;
         }
@@ -274,17 +238,60 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
             progressDialog.dismiss();
             //Json
             try {
-//                model.getCarreraFromJSON(s);
-                showCarreras();
+                list task = new list();
+                task.execute();
             } catch (Exception ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            } finally {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
         }
 
     }
 
-    public void showCarreras(){
-        adapter = new CarrerasAdapter(model.getCarreras(), this);
+    public class list extends AsyncTask<String, String, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // display a progress dialog for good user experiance
+            progressDialog = new ProgressDialog(CarrerasActivity.this);
+            progressDialog.setMessage("¡Cargando la Lista!");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            message = "";
+            String result = "";
+            try {
+                result = Servicio.run(LIST_CARRERA_URL);
+            } catch (Exception ex) {
+                message = ex.getMessage();
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            // dismiss the progress dialog after receiving data from API
+            progressDialog.dismiss();
+            //Json
+            try {
+                carreraList = ServicioCarrera.list(s);
+                showCarreras();
+            } catch (Exception ex) {
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            } finally {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+            }
+        }
+
+    }
+
+    public void showCarreras() {
+        adapter = new CarrerasAdapter(carreraList, this);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(mLayoutManager);
@@ -294,6 +301,63 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
 
         //refresh view
         adapter.notifyDataSetChanged();
+    }
+
+    public class delete extends AsyncTask<String, String, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // display a progress dialog for good user experiance
+            progressDialog = new ProgressDialog(CarrerasActivity.this);
+            progressDialog.setMessage("¡Eliminando " + deleteCarrera.getNombre() + "!");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... args) {
+            message = "";
+            try {
+                Servicio.run(DELETE_CARRERA_URL + "&json=" + encodeURIComponent(deleteCarrera.getJSON().toString()));
+                message = deleteCarrera.getNombre() + " eliminado correctamente";
+            } catch (Exception ex) {
+                message = ex.getMessage();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            // dismiss the progress dialog after receiving data from API
+            progressDialog.dismiss();
+            //Json
+            try {
+                list task = new list();
+                task.execute();
+            } catch (Exception ex) {
+                Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            } finally {
+                if (message.indexOf("eliminado correctamente") != -1) {
+                    // showing snack bar with Undo option
+                    Snackbar snackbar = Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG);
+                    snackbar.setAction("UNDO", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            // undo is selected, restore the deleted item from adapter
+                            getIntent().putExtra("insert", deleteCarrera);
+                            checkIntentInformation checkIntentInformation = new checkIntentInformation();
+                            checkIntentInformation.execute();
+                        }
+                    });
+                    snackbar.setActionTextColor(Color.YELLOW);
+                    snackbar.show();
+                } else {
+                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+
     }
 
     private void insert_carrera() {
