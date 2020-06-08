@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -53,6 +54,8 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
     private Model model;
     private ProgressDialog progressDialog;
     private String message;
+    Handler handler = new Handler();
+    private final int TIEMPO = 5000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,8 +91,29 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
         // Receive the Carrera sent by AddUpdCarreraActivity
         checkIntentInformation checkIntentInformation = new checkIntentInformation();
         checkIntentInformation.execute();
+
+        ejecutarTareas();
     }
 
+
+    public void ejecutarTareas(){
+
+        handler.postDelayed(new Runnable(){
+            public void run(){
+                try {
+                    actualizarListas();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                handler.postDelayed(this, TIEMPO);
+            }
+        },TIEMPO);
+    }
+
+    public void actualizarListas() throws Exception {
+        String s = "";
+        cursoList = ServicioCurso.list(s);
+    }
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
         if (direction == ItemTouchHelper.START) {

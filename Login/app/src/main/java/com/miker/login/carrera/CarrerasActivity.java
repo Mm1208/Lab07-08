@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,6 +31,7 @@ import com.miker.login.Model;
 import com.miker.login.NavDrawerActivity;
 import com.miker.login.R;
 import com.miker.login.Servicio;
+import com.miker.login.ServicioActualizar;
 import com.miker.login.ServicioCarrera;
 
 import java.util.ArrayList;
@@ -53,7 +55,8 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
     private ProgressDialog progressDialog;
     private String message;
     private Carrera deleteCarrera;
-
+    Handler handler = new Handler();
+    private final int TIEMPO = 5000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,8 +95,28 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
         CarrerasActivity.checkIntentInformation checkIntentInformation = new checkIntentInformation();
         checkIntentInformation.execute();
 
+        ejecutarTareas();
     }
 
+
+    public void ejecutarTareas(){
+
+        handler.postDelayed(new Runnable(){
+            public void run(){
+                try {
+                    actualizarListas();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                handler.postDelayed(this, TIEMPO);
+            }
+        },TIEMPO);
+    }
+
+    public void actualizarListas() throws Exception {
+        String s = "";
+        carreraList = ServicioCarrera.list(s);
+    }
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
         if (direction == ItemTouchHelper.START) {
@@ -293,6 +316,10 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
     }
 
     public void showCarreras() {
+        //Ejecuta el servicio de actualizar para ver si han habido cambios
+        //Si los hay, los asigna a carreraList
+        //carreralist = ServicioActializar.listCarrera();
+
         adapter = new CarrerasAdapter(carreraList, this);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());

@@ -38,19 +38,19 @@ public class ServicioCarrera {
         return gson.fromJson(json_format, Carrera.class);
     }
 
-    public static List<Carrera> list(String json_format) throws Exception {
-        List<Carrera> list = new ArrayList<>();
+   public static List<Carrera> list(String json_format) throws Exception {
+           List<Carrera> list = new ArrayList<>();
         try {
-            JSONArray JSONList = new JSONArray(json_format);
-            for (int i = 0; i < JSONList.length(); i++) {
-                JSONObject dataDetail = JSONList.getJSONObject(i);
-                list.add(
-                        gson.fromJson(dataDetail.toString(), Carrera.class)
-                );
-            }
+             JSONArray JSONList = new JSONArray(json_format);
+           for (int i = 0; i < JSONList.length(); i++) {
+                 JSONObject dataDetail = JSONList.getJSONObject(i);
+                 list.add(
+                                            gson.fromJson(dataDetail.toString(), Carrera.class)
+               );
+          }
         } catch (JSONException e) {
             throw e;
-        }
-        return list;
-    }
+         }
+       return list;
+   }
 }
