@@ -39,6 +39,7 @@ import java.util.List;
 
 import static com.miker.login.EncodingUtil.encodeURIComponent;
 import static com.miker.login.Model.LIST_CURSO_URL;
+import static com.miker.login.ServicioActualizar.ACTUALIZA_CARRERA_URL;
 import static com.miker.login.ServicioCarrera.DELETE_CARRERA_URL;
 import static com.miker.login.ServicioCarrera.INSERT_CARRERA_URL;
 import static com.miker.login.ServicioCarrera.LIST_CARRERA_URL;
@@ -114,8 +115,17 @@ public class CarrerasActivity extends AppCompatActivity implements RecyclerItemT
     }
 
     public void actualizarListas() throws Exception {
-        String s = "";
-        carreraList = ServicioCarrera.list(s);
+        boolean cambio = false;
+        try {
+            cambio = Boolean.parseBoolean(Servicio.run(ACTUALIZA_CARRERA_URL));
+        } catch (Exception ex) {
+            message = ex.getMessage();
+        }
+
+        if(cambio) {
+            String result = Servicio.run(LIST_CARRERA_URL);
+            carreraList = ServicioCarrera.list(result);
+        }
     }
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {

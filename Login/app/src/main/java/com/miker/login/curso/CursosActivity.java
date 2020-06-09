@@ -31,6 +31,7 @@ import com.miker.login.Model;
 import com.miker.login.NavDrawerActivity;
 import com.miker.login.R;
 import com.miker.login.Servicio;
+import com.miker.login.ServicioActualizar;
 import com.miker.login.ServicioCurso;
 
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ import static com.miker.login.ServicioCurso.DELETE_CURSO_URL;
 import static com.miker.login.ServicioCurso.INSERT_CURSO_URL;
 import static com.miker.login.ServicioCurso.LIST_CURSO_URL;
 import static com.miker.login.ServicioCurso.UPDATE_CURSO_URL;
+import static com.miker.login.ServicioActualizar.ACTUALIZA_CURSO_URL;
 
 public class CursosActivity extends AppCompatActivity implements RecyclerItemTouchHelper.RecyclerItemTouchHelperListener, CursosAdapter.CursoAdapterListener {
 
@@ -111,8 +113,18 @@ public class CursosActivity extends AppCompatActivity implements RecyclerItemTou
     }
 
     public void actualizarListas() throws Exception {
-        String s = "";
-        cursoList = ServicioCurso.list(s);
+        boolean cambio = false;
+        try {
+            cambio = Boolean.parseBoolean(Servicio.run(ACTUALIZA_CURSO_URL));
+        } catch (Exception ex) {
+            message = ex.getMessage();
+        }
+
+        if(cambio) {
+            String result = "";
+            result = Servicio.run(LIST_CURSO_URL);
+            cursoList = ServicioCurso.list(result);
+        }
     }
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
